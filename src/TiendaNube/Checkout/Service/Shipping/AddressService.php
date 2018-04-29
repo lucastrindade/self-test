@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace TiendaNube\Checkout\Service\Shipping;
 
 use Psr\Log\LoggerInterface;
+use TiendaNube\Checkout\Model\Address;
 use TiendaNube\Checkout\Service\Store\StoreServiceInterface;
 use TiendaNube\Config\Config;
 use TiendaNube\Config\ConfigInterface;
+use TiendaNube\Exceptions\HttpRequestException;
+use TiendaNube\Http\ClientInterface;
+use TiendaNube\Http\Code;
 
 /**
  * Class AddressService
@@ -16,13 +20,6 @@ use TiendaNube\Config\ConfigInterface;
  */
 class AddressService
 {
-    /**
-     * The database connection link
-     *
-     * @var \PDO
-     */
-    private $connection;
-
     /**
      * Logger
      *
@@ -45,18 +42,35 @@ class AddressService
     private $config;
 
     /**
+     * Http client
+     *
+     * @var ClientInterface
+     */
+    private $client;
+
+    /**
+     * Address Model
+     *
+     * @var Address
+     */
+    private $address;
+
+    /**
      * AddressService constructor.
-     * @param \PDO $pdo
+     *
      * @param LoggerInterface $logger
      * @param StoreServiceInterface $storeService
      * @param ConfigInterface $config
+     * @param ClientInterface $client
+     * @param Address $address
      */
-    public function __construct(\PDO $pdo, LoggerInterface $logger, StoreServiceInterface $storeService, ConfigInterface $config)
+    public function __construct(LoggerInterface $logger, StoreServiceInterface $storeService, ConfigInterface $config, ClientInterface $client, Address $address)
     {
-        $this->connection = $pdo;
         $this->logger = $logger;
         $this->store = $storeService->getCurrentStore();
         $this->config = $config;
+        $this->client = $client;
+        $this->address = $address;
     }
 
     /**
@@ -82,10 +96,24 @@ class AddressService
             }
 
             return $this->serviceRetrieveByZip($zip);
-        } catch (\PDOException $ex) {
+        } catch (\PDOException $e) {
             $this->logger->error(
                 'An error occurred at try to fetch the address from the database, exception with message was caught: ' .
-                $ex->getMessage()
+                $e->getMessage()
+            );
+
+            return null;
+        } catch(HttpRequestException $e){
+            $this->logger->error(
+                'An error occurred at try to fetch the address from the API, exception with message was caught: ' .
+                $e->getMessage()
+            );
+
+            return null;
+        } catch (\Exception $e) {
+            $this->logger->error(
+                'An error occurred at try to fetch the address, exception with message was caught: ' .
+                $e->getMessage()
             );
 
             return null;
@@ -102,26 +130,15 @@ class AddressService
     {
         $this->logger->debug('Getting address for the zipcode [' . $zip . '] from database');
 
-        // =========== ALTERAR PARA CONSULTAR DA MODEL OU REPOSITORY ===========
-        // =========== ALTERAR PARA CONSULTAR DA MODEL OU REPOSITORY ===========
-        // =========== ALTERAR PARA CONSULTAR DA MODEL OU REPOSITORY ===========
-        // =========== ALTERAR PARA CONSULTAR DA MODEL OU REPOSITORY ===========
-        // getting the address from database
-        $stmt = $this->connection->prepare('SELECT * FROM `addresses` WHERE `zipcode` = ?');
-        $stmt->execute([$zip]);
-
-        // checking if the address exists
-        if ($stmt->rowCount() > 0) {
-            return $stmt->fetch(\PDO::FETCH_ASSOC);
-        }
-
-        return null;
+        return $this->address->find($zip, 'zipcode');
     }
 
     /**
+     * Get the address from API using the zip code
      *
      * @param string $zip
      * @return array|null
+     * @throws HttpRequestException
      */
     private function serviceRetrieveByZip(string $zip): ?array
     {
@@ -130,6 +147,25 @@ class AddressService
         $baseUrl = $this->config->get('services.base_url');
         $configs = $this->config->get('services.address');
 
-        return null;
+        $response = $this->client
+                ->url("{$baseUrl}{$configs['endpoint']}", ['zip' => $zip])
+                ->headers([
+                    'Content-Type' => $configs['content_type'],
+                    'Authentication bearer' => 'YouShallNotPass'
+                ])
+                ->method($configs['method'])
+                ->send();
+
+        if($response->getStatusCode() != Code::OK){
+            return null;
+        }
+
+        $content = json_decode($response->getBody()->getContents(), true);
+        return [
+            'address'       => $content['address'],
+            'neighborhood'  => $content['neighborhood'],
+            'city'          => $content['city']['name'],
+            'state'         => $content['state']['acronym'],
+        ];
     }
 }
