@@ -5,11 +5,12 @@
     "license": "proprietary",
     "authors": [
         {
-            "name": "Lucas Mendes",
-            "email": "lucas@tiendanube.com"
+            "name": "Lucas Trindade",
+            "email": "lucasts22@gmail.com"
         }
     ],
     "require": {
+        "php": ">=7.1",
         "psr/http-message": "^1.0",
         "psr/container": "^1.0",
         "psr/log": "^1.0"

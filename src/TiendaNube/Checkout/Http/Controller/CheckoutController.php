@@ -26,9 +26,10 @@ class CheckoutController extends AbstractController
      * @param AddressService $addressService
      * @return ResponseInterface
      */
-    public function getAddressAction(string $zipcode, AddressService $addressService):ResponseInterface {
+    public function getAddressAction(string $zipcode, AddressService $addressService):ResponseInterface
+    {
         // filtering and sanitizing input
-        $rawZipcode = preg_replace("/[^\d]/","",$zipcode);
+        $rawZipcode = preg_replace("/[^\d]/","", $zipcode);
 
         // getting address by zipcode
         $address = $addressService->getAddressByZip($rawZipcode);
