@@ -36,11 +36,11 @@ class CheckoutControllerTest extends TestCase
         $addressService->method('getAddressByZip')->willReturn($address);
 
         // test
-        $result = $controller->getAddressAction('40010000',$addressService);
+        $result = $controller->getAddressAction('40010000', $addressService);
 
         // asserts
-        $this->assertEquals(json_encode($address),$result->getBody()->getContents());
-        $this->assertEquals(200,$result->getStatusCode());
+        $this->assertEquals(json_encode($address), $result->getBody()->getContents());
+        $this->assertEquals(200, $result->getStatusCode());
     }
 
     public function testGetAddressInvalid()
@@ -57,7 +57,7 @@ class CheckoutControllerTest extends TestCase
 
         // asserts
         $this->assertEquals(404,$result->getStatusCode());
-        $this->assertEquals('{"error":"The requested zipcode was not found."}',$result->getBody()->getContents());
+        $this->assertEquals('{"error":"The requested zipcode was not found."}', $result->getBody()->getContents());
     }
 
     /**

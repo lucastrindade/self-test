@@ -45,7 +45,7 @@ interface ClientInterface
      * @param string $verb
      * @return ClientInterface
      */
-    public function method(string $verb): ClientInterface;
+    public function verb(string $verb): ClientInterface;
 
     /**
      * Performs the request

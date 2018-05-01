@@ -153,7 +153,7 @@ class AddressService
                     'Content-Type' => $configs['content_type'],
                     'Authentication bearer' => 'YouShallNotPass'
                 ])
-                ->method($configs['method'])
+                ->verb($configs['method'])
                 ->send();
 
         if($response->getStatusCode() != Code::OK){
@@ -161,6 +161,7 @@ class AddressService
         }
 
         $content = json_decode($response->getBody()->getContents(), true);
+
         return [
             'address'       => $content['address'],
             'neighborhood'  => $content['neighborhood'],
